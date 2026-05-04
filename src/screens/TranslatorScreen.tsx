@@ -63,7 +63,7 @@ export default function TranslatorScreen() {
       }
 
       try {
-        const { data } = await predictApi.predict(frames);
+        const { data } =  await predictApi.predict(selectedModelIdRef.current!, frames);
         setPrediction(data);
       } catch (err) {
         console.error('[Translator] predict failed', err);
@@ -151,7 +151,7 @@ export default function TranslatorScreen() {
       <View style={styles.predictionCard}>
         <Text style={styles.predictionLabel}>PREDICTED GESTURE</Text>
         <Text style={styles.predictionText}>
-          {prediction ? prediction.label : '—'}
+          {prediction ? prediction.predictedLabel : '—'}
         </Text>
         {prediction && (
           <View style={styles.confidenceBadge}>

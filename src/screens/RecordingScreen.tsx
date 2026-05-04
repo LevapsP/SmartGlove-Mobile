@@ -26,6 +26,8 @@ import { SensorFrame } from '../types';
 export default function RecordingScreen() {
   const { selectedModelId } = useStore();
 
+  const [gestureLabel, setGestureLabel] = useState('');
+
   const [isRecording, setIsRecording]           = useState(false);
   const [framesCollected, setFramesCollected]   = useState(0);
   const [capturedFrames, setCapturedFrames]     = useState<SensorFrame[]>([]);
@@ -76,12 +78,20 @@ export default function RecordingScreen() {
   }, [selectedModelId]);
 
   const fetchSummary = async () => {
-    if (!selectedModelId) return;
-    try {
-      const { data } = await modelApi.getGestureSummary(selectedModelId);
-      setSummary(data);
-    } catch {}
-  };
+  if (!selectedModelId) return;
+
+  try {
+    const { data } = await modelApi.getGestureSummary(selectedModelId);
+
+    // FIX: convert array → object
+    const summary = {
+      totalGestures: data.length,
+      labelsCount: new Set(data.map((x: any) => x.label)).size,
+    };
+
+    setSummary(summary);
+  } catch {}
+};
 
   const handleStartRecording = useCallback(() => {
     setFramesCollected(0);
@@ -99,7 +109,7 @@ export default function RecordingScreen() {
     if (!selectedModelId || capturedFrames.length === 0) return;
     setSaving(true);
     try {
-      await modelApi.addGesture(selectedModelId, capturedFrames);
+      await modelApi.addGesture(selectedModelId, gestureLabel, capturedFrames);
       Alert.alert('Saved ✓', `Gesture saved: ${capturedFrames.length} frames`);
       setCapturedFrames([]);
       setFramesCollected(0);

@@ -16,36 +16,35 @@ export default function AuthScreen() {
   const [isLogin, setIsLogin]     = useState(true);
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
-  const [name, setName]           = useState('');
   const [loading, setLoading]     = useState(false);
 
   const setAuth = useStore(state => state.setAuth);
 
   const handleAuth = async () => {
-    if (!email.trim() || !password.trim() || (!isLogin && !name.trim())) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+  if (!email.trim() || !password.trim()) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
+  setLoading(true);
+  try {
+    if (isLogin) {
+      const { data } = await authApi.login({ email, password });
+      setAuth(data.token);
+    } else {
+      const { data } = await authApi.register({ email, password });
+      setAuth(data.token);
     }
+  } catch (err: any) {
+    Alert.alert(
+      'Authentication Failed',
+      err.response?.data?.message ?? 'Check your credentials and try again.',
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setLoading(true);
-    try {
-      if (isLogin) {
-        const { data } = await authApi.login({ email, password });
-        setAuth(data.user, data.token);
-      } else {
-        const { data } = await authApi.register({ email, password, name });
-        setAuth(data.user, data.token);
-      }
-      // Navigation happens automatically: App.tsx watches token in store
-    } catch (err: any) {
-      Alert.alert(
-        'Authentication Failed',
-        err.response?.data?.message ?? 'Check your credentials and try again.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <KeyboardAvoidingView
@@ -58,18 +57,6 @@ export default function AuthScreen() {
           <Text style={styles.subtitle}>SmartGlove Professional Suite</Text>
         </View>
 
-        {!isLogin && (
-          <View style={styles.inputWrapper}>
-            <UserIcon color="#94A3B8" size={20} style={styles.icon} />
-            <TextInput
-              placeholder="Full Name"
-              placeholderTextColor="#64748B"
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
-        )}
 
         <View style={styles.inputWrapper}>
           <Mail color="#94A3B8" size={20} style={styles.icon} />

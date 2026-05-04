@@ -1,10 +1,4 @@
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
 export interface LoginRequest {
   email: string;
   password: string;
@@ -13,11 +7,9 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  name: string;
 }
 
 export interface AuthResponse {
-  user: User;
   token: string;
 }
 
@@ -30,37 +22,52 @@ export interface Model {
   gestureCount: number;
 }
 
-export interface CreateModelRequest {
+export interface GestureModel {
+  id: string;
+  userId: string;
   name: string;
-  description: string;
+  includesDefaultGestures: boolean;
+  status: 'CREATED' | 'TRAINING' | 'READY';
+  default: boolean;
 }
 
-export interface GestureSummary {
-  totalGestures: number;
-  labelsCount: number;
+export interface CreateModelRequest {
+  name: string;
+  basedOnDefault: boolean;
 }
 
 // ─── Gestures ─────────────────────────────────────────────────────────────────
-
-// One frame = 18 float values from 3x MPU6050
-export type SensorFrame = number[];
-
-// What we send to backend when saving a gesture
 export interface SaveGestureRequest {
-  gesture_data: SensorFrame[];
+  label: string;
+  rawData: number[][];
+}
+
+export interface GestureSummaryItem {
+  label: string;
+  count: number;
 }
 
 // ─── Prediction ───────────────────────────────────────────────────────────────
-export interface PredictionResult {
-  label: string;
+export interface PredictRequest {
+  modelId: string;
+  rawData: number[][];
+}
+
+export interface PredictResponse {
+  predictedLabel: string;
   confidence: number;
 }
 
-export interface PredictRequest {
-  gesture_data: SensorFrame[];
-}
-
 // ─── Bluetooth ────────────────────────────────────────────────────────────────
+export type SensorFrame = number[];
+
+export type BTEventName =
+  | 'frame'
+  | 'gestureComplete'
+  | 'connected'
+  | 'disconnected'
+  | 'error';
+
 export interface BluetoothDeviceInfo {
   name: string;
   address: string;
@@ -68,5 +75,9 @@ export interface BluetoothDeviceInfo {
   bonded: boolean;
 }
 
-// Bluetooth event names — typed so we can't typo them
-export type BTEventName = 'frame' | 'gestureComplete' | 'connected' | 'disconnected' | 'error';
+
+//added but need to check if its correct
+export type PredictionResult = {
+  predictedLabel: string;
+  confidence: number;
+};
