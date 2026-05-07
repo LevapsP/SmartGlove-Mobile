@@ -112,6 +112,16 @@ class BluetoothService extends MiniEmitter {
     return device;
   }
 
+  
+  async sendCommand(cmd: 'START' | 'STOP' | 'RESET'): Promise<void> {
+    if (!this.connectedDevice) {
+      logger.warn('BT', 'sendCommand called but not connected');
+      return;
+    }
+    await this.connectedDevice.write(cmd + '\n');
+    logger.info('BT', `Sent command: ${cmd}`);
+  }
+
   async disconnect(): Promise<void> {
     this.cleanupSubscriptions();
     if (this.connectedDevice) {

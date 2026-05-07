@@ -93,11 +93,17 @@ export default function RecordingScreen() {
   } catch {}
 };
 
-  const handleStartRecording = useCallback(() => {
+  const handleStartRecording = useCallback(async () => {
     setFramesCollected(0);
     setCapturedFrames([]);
     setIsRecording(true);
+    await BluetoothService.sendCommand('START');
     // isRecordingRef.current will be updated by the useEffect watcher above
+  }, []);
+
+  const handleStopRecording = useCallback(async () => {
+  await BluetoothService.sendCommand('STOP'); // 👈 ESP32 переходить в SENDING
+  // gestureComplete прийде автоматично після END
   }, []);
 
   const handleDiscard = useCallback(() => {
@@ -171,9 +177,15 @@ export default function RecordingScreen() {
         {isRecording && (
           <View style={styles.recordingIndicator}>
             <ActivityIndicator color="#4ADE80" />
-            <Text style={styles.recordingText}>Waiting for gesture to finish (END signal)...</Text>
+            <Text style={styles.recordingText}>Recording... {framesCollected} frames</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#EF4444', padding: 10, borderRadius: 10, marginTop: 10 }}
+              onPress={handleStopRecording}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Stop</Text>
+            </TouchableOpacity>
           </View>
-        )}
+          )}
 
         {hasCapture && !isRecording && (
           <View style={styles.actionRow}>

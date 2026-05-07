@@ -75,9 +75,3 @@ export interface BluetoothDeviceInfo {
   bonded: boolean;
 }
 
-
-//added but need to check if its correct
-export type PredictionResult = {
-  predictedLabel: string;
-  confidence: number;
-};

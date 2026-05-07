@@ -8,20 +8,21 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, Modal, TextInput, Alert,
 } from 'react-native';
-import { Plus, Target, ChevronRight, Activity } from 'lucide-react-native';
+import { Plus, Target, ChevronRight, Activity, LogOutIcon } from 'lucide-react-native';
 import { modelApi } from '../services/api';
 import { useStore } from '../store/useStore';
-import { Model } from '../types';
+import { GestureModel } from '../types';
+
 
 export default function ModelsScreen() {
-  const [models, setModels]           = useState<Model[]>([]);
+  const [models, setModels] = useState<GestureModel[]>([]);
   const [refreshing, setRefreshing]   = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newName, setNewName]         = useState('');
   const [newDesc, setNewDesc]         = useState('');
   const [creating, setCreating]       = useState(false);
 
-  const { selectedModelId, setSelectedModelId } = useStore();
+  const { selectedModelId, setSelectedModelId, logout } = useStore();
 
   const fetchModels = async () => {
     setRefreshing(true);
@@ -41,7 +42,7 @@ export default function ModelsScreen() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await modelApi.createModel({ name: newName.trim(), description: newDesc.trim() });
+      await modelApi.createModel({ name: newName.trim(), basedOnDefault: false });
       setModalVisible(false);
       setNewName('');
       setNewDesc('');
@@ -53,45 +54,58 @@ export default function ModelsScreen() {
     }
   };
 
-  const renderModel = ({ item }: { item: Model }) => {
-    const isSelected = selectedModelId === item.id;
-    return (
-      <TouchableOpacity
-        style={[styles.card, isSelected && styles.cardSelected]}
-        onPress={() => setSelectedModelId(item.id)}
-      >
-        <View style={styles.cardMain}>
-          <View style={[styles.iconContainer, isSelected && styles.iconActive]}>
-            <Target color={isSelected ? '#3B82F6' : '#64748B'} size={24} />
-          </View>
-          <View style={styles.cardText}>
-            <Text style={styles.modelName}>{item.name}</Text>
-            <Text style={styles.modelDesc}>{item.description || 'No description'}</Text>
-          </View>
-          {isSelected && (
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeLabel}>ACTIVE</Text>
-            </View>
-          )}
+  const renderModel = ({ item }: { item: GestureModel }) => {
+  const isSelected = selectedModelId === item.id;
+  return (
+
+    <TouchableOpacity
+      style={[styles.card, isSelected && styles.cardSelected]}
+      onPress={() => setSelectedModelId(item.id)}
+    >
+      <View style={styles.cardMain}>
+        <View style={[styles.iconContainer, isSelected && styles.iconActive]}>
+          <Target color={isSelected ? '#3B82F6' : '#64748B'} size={24} />
         </View>
-        <View style={styles.cardFooter}>
-          <View style={styles.statLine}>
-            <Activity color="#94A3B8" size={14} />
-            <Text style={styles.statText}>{item.gestureCount} Gestures Recorded</Text>
-          </View>
-          <ChevronRight color="#334155" size={20} />
+        <View style={styles.cardText}>
+          <Text style={styles.modelName}>{item.name}</Text>
+          <Text style={styles.modelDesc}>
+            {item.default ? 'Default model' : 'Custom model'}  {/* замість description */}
+          </Text>
         </View>
-      </TouchableOpacity>
-    );
-  };
+        {isSelected && (
+          <View style={styles.activeBadge}>
+            <Text style={styles.activeLabel}>ACTIVE</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.cardFooter}>
+        <View style={styles.statLine}>
+          <Activity color="#94A3B8" size={14} />
+          <Text style={styles.statText}>{item.status}</Text>  {/* замість gestureCount */}
+        </View>
+        <ChevronRight color="#334155" size={20} />
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your Models</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Plus color="#fff" size={24} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Plus color="#fff" size={24} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.addBtn, { backgroundColor: '#EF4444' }]}
+            onPress={logout}
+          >
+            <LogOutIcon color="#fff" size={24} />
+          </TouchableOpacity>
+        </View>
+
       </View>
 
       <FlatList

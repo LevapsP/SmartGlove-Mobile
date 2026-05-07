@@ -22,7 +22,7 @@ import { Bluetooth, Activity, Cpu, CheckCircle2, AlertCircle } from 'lucide-reac
 import BluetoothService from '../services/BluetoothService';
 import { predictApi } from '../services/api';
 import { useStore } from '../store/useStore';
-import { SensorFrame, PredictionResult } from '../types';
+import { SensorFrame } from '../types';
 import { requestBluetoothPermissions } from '../utils/permissions';
 
 export default function TranslatorScreen() {
@@ -185,31 +185,7 @@ export default function TranslatorScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Live stream debugger */}
-      <View style={styles.debugSection}>
-        <View style={styles.debugHeader}>
-          <Activity color="#94A3B8" size={16} />
-          <Text style={styles.debugTitle}>LIVE MPU6050 DATA STREAM</Text>
-          {isModelInitialized && (
-            <View style={styles.readyDot} />
-          )}
-        </View>
-        <ScrollView style={styles.streamLog}>
-          {frameHistory.map((frame, i) => (
-            <Text key={i} style={styles.streamItem} numberOfLines={1}>
-              {`[${new Date().toLocaleTimeString()}] `}
-              {frame.map(v => v.toFixed(2)).join(', ')}
-            </Text>
-          ))}
-          {frameHistory.length === 0 && (
-            <Text style={styles.emptyText}>
-              {isConnected
-                ? 'Waiting for gesture data...'
-                : 'No data — tap Bluetooth icon to connect'}
-            </Text>
-          )}
-        </ScrollView>
-      </View>
+      
 
       {/* Warnings */}
       {!selectedModelId && (
