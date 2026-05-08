@@ -22,16 +22,19 @@ const api = axios.create({
 // ─── JWT interceptor ─────────────────────────────────────────────────────────
 api.interceptors.request.use(
   config => {
-    const token = useStore.getState().token;
+  const token = useStore.getState().token;
+  console.log('TOKEN:', token ? token.substring(0, 20) + '...' : 'NULL');
 
-    // ❗ НЕ додаємо токен до auth endpoint-ів
-    if (token && !config.url?.startsWith('/auth')) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token && !config.url?.startsWith('/auth')) {
+    config.headers.Authorization = `Bearer ${token}`;
+    console.log('AUTH HEADER SET'); // 👈
+  } else {
+    console.log('AUTH HEADER SKIPPED, url:', config.url); // 👈
+  }
 
-    logger.debug('API', `→ ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
+  logger.debug('API', `→ ${config.method?.toUpperCase()} ${config.url}`);
+  return config;
+},
   error => Promise.reject(error),
 );
 
@@ -77,6 +80,9 @@ export const modelApi = {
 
   getModel: (modelId: string) =>
     api.get<GestureModel>(`/models/${modelId}`),
+
+  deleteModel: (modelId: string) =>
+  api.delete(`/models/${modelId}`),
 
   createModel: (data: CreateModelRequest) =>
     api.post<GestureModel>('/models', data),

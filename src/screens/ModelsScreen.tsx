@@ -8,7 +8,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, Modal, TextInput, Alert,
 } from 'react-native';
-import { Plus, Target, ChevronRight, Activity, LogOutIcon } from 'lucide-react-native';
+import { Plus, Target, ChevronRight, Activity, LogOutIcon, Trash2 } from 'lucide-react-native';
 import { modelApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import { GestureModel } from '../types';
@@ -25,18 +25,42 @@ export default function ModelsScreen() {
   const { selectedModelId, setSelectedModelId, logout } = useStore();
 
   const fetchModels = async () => {
-    setRefreshing(true);
-    try {
-      const { data } = await modelApi.getModels();
-      setModels(data);
-    } catch (err) {
-      console.error('[Models] fetch failed', err);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  setRefreshing(true);
+  try {
+    const { data } = await modelApi.getModels();
+    console.log('MODELS:', JSON.stringify(data, null, 2)); 
+    setModels(data);
+  } catch (err) {
+    console.error('[Models] fetch failed', err);
+  } finally {
+    setRefreshing(false);
+  }
+};
 
   useEffect(() => { fetchModels(); }, []);
+
+  const handleDelete = (modelId: string, modelName: string) => {
+  Alert.alert(
+    'Видалити модель',
+    `Ви впевнені що хочете видалити "${modelName}"?`,
+    [
+      { text: 'Скасувати', style: 'cancel' },
+      {
+        text: 'Видалити',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await modelApi.deleteModel(modelId);
+            if (selectedModelId === modelId) setSelectedModelId(null);
+            fetchModels();
+          } catch {
+            Alert.alert('Помилка', 'Не вдалося видалити модель');
+          }
+        },
+      },
+    ],
+  );
+};
 
   const createModel = async () => {
     if (!newName.trim()) return;
@@ -57,7 +81,6 @@ export default function ModelsScreen() {
   const renderModel = ({ item }: { item: GestureModel }) => {
   const isSelected = selectedModelId === item.id;
   return (
-
     <TouchableOpacity
       style={[styles.card, isSelected && styles.cardSelected]}
       onPress={() => setSelectedModelId(item.id)}
@@ -69,7 +92,7 @@ export default function ModelsScreen() {
         <View style={styles.cardText}>
           <Text style={styles.modelName}>{item.name}</Text>
           <Text style={styles.modelDesc}>
-            {item.default ? 'Default model' : 'Custom model'}  {/* замість description */}
+            {item.default ? 'Default model' : 'Custom model'}
           </Text>
         </View>
         {isSelected && (
@@ -81,9 +104,12 @@ export default function ModelsScreen() {
       <View style={styles.cardFooter}>
         <View style={styles.statLine}>
           <Activity color="#94A3B8" size={14} />
-          <Text style={styles.statText}>{item.status}</Text>  {/* замість gestureCount */}
+          <Text style={styles.statText}>{item.status}</Text>
         </View>
-        <ChevronRight color="#334155" size={20} />
+        {/* 👈 ДОДАЙ кнопку видалення */}
+        <TouchableOpacity onPress={() => handleDelete(item.id, item.name)}>
+          <Trash2 color="#EF4444" size={18} />
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );

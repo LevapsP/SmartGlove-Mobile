@@ -189,7 +189,14 @@ class BluetoothService extends MiniEmitter {
    * and only processing when you see '\n'.
    */
   private handleChunk(chunk: string): void {
-    this.rxBuffer += chunk;
+
+    const normalized = chunk.endsWith('\n') ? chunk : chunk + '\n';
+
+    logger.debug('BT:RAW', `chunk received, length=${chunk.length}`);
+    logger.debug('BT:RAW', `content: "${chunk.substring(0, 50).replace(/\n/g, '\\n')}"`);
+
+    
+    this.rxBuffer += normalized;
 
     // Split by newline — last element is either '' or an incomplete line
     const lines = this.rxBuffer.split('\n');

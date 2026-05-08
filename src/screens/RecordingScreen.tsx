@@ -15,7 +15,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, TextInput 
 } from 'react-native';
 import { Save, Trash2, Info, Fingerprint } from 'lucide-react-native';
 import BluetoothService from '../services/BluetoothService';
@@ -47,31 +47,25 @@ export default function RecordingScreen() {
   // FIX 1 + FIX 3: Register listeners ONCE on mount. Use named functions so
   // we can unsubscribe exactly these callbacks — not all listeners globally.
   useEffect(() => {
-    const onFrame = (_frame: SensorFrame) => {
-      // FIX 2: read from ref, not from closed-over state
-      if (isRecordingRef.current) {
-        setFramesCollected(prev => prev + 1);
-      }
-    };
+  const onFrame = (_frame: SensorFrame) => {
+    // 👈 ПРИБРАЛИ перевірку isRecordingRef — рахуємо всі фрейми що приходять
+    setFramesCollected(prev => prev + 1);
+  };
 
-    const onGestureComplete = (frames: SensorFrame[]) => {
-      // Only store the gesture if we were recording
-      if (isRecordingRef.current) {
-        setCapturedFrames(frames);
-        setIsRecording(false);
-        // ref will be updated via the useEffect above on next render
-      }
-    };
+  const onGestureComplete = (frames: SensorFrame[]) => {
+    setCapturedFrames(frames);
+    setIsRecording(false);
+  };
 
-    BluetoothService.on('frame', onFrame);
-    BluetoothService.on('gestureComplete', onGestureComplete);
+  BluetoothService.on('frame', onFrame);
+  BluetoothService.on('gestureComplete', onGestureComplete);
 
-    // FIX 1: Clean up ONLY our specific callbacks
-    return () => {
-      BluetoothService.off('frame', onFrame);
-      BluetoothService.off('gestureComplete', onGestureComplete);
-    };
-  }, []); // ← empty: run once on mount, once on unmount
+  return () => {
+    BluetoothService.off('frame', onFrame);
+    BluetoothService.off('gestureComplete', onGestureComplete);
+  };
+}, []);
+
 
   useEffect(() => {
     fetchSummary();
@@ -158,7 +152,7 @@ export default function RecordingScreen() {
         </View>
         <Text style={styles.statusText}>
           {isRecording
-            ? 'Recording... (waiting for END from ESP32)'
+            ? 'Recording...'           // 👈 спростити
             : hasCapture
               ? `Captured ${capturedFrames.length} frames`
               : 'Ready to record'}
@@ -168,24 +162,24 @@ export default function RecordingScreen() {
 
       {/* Controls */}
       <View style={styles.controls}>
-        {!isRecording && !hasCapture && (
-          <TouchableOpacity style={styles.recordBtn} onPress={handleStartRecording}>
-            <Text style={styles.recordBtnText}>Start Recording</Text>
-          </TouchableOpacity>
-        )}
+        <TextInput
+    style={styles.labelInput}
+    placeholder="Gesture name (e.g. hello, yes, no)"
+    placeholderTextColor="#64748B"
+    value={gestureLabel}
+    onChangeText={setGestureLabel}
+    editable={!isRecording}
+  />
 
-        {isRecording && (
-          <View style={styles.recordingIndicator}>
-            <ActivityIndicator color="#4ADE80" />
-            <Text style={styles.recordingText}>Recording... {framesCollected} frames</Text>
-            <TouchableOpacity
-              style={{ backgroundColor: '#EF4444', padding: 10, borderRadius: 10, marginTop: 10 }}
-              onPress={handleStopRecording}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700' }}>Stop</Text>
-            </TouchableOpacity>
-          </View>
-          )}
+  {!isRecording && !hasCapture && (
+    <TouchableOpacity
+      style={[styles.recordBtn, !gestureLabel.trim() && styles.recordBtnDisabled]}
+      onPress={handleStartRecording}
+      disabled={!gestureLabel.trim()} // 👈 не можна записати без назви
+    >
+      <Text style={styles.recordBtnText}>Start Recording</Text>
+    </TouchableOpacity>
+  )}
 
         {hasCapture && !isRecording && (
           <View style={styles.actionRow}>
@@ -258,4 +252,6 @@ const styles = StyleSheet.create({
   emptyContainer:     { flex: 1, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyTitle:         { color: '#F8FAFC', fontSize: 20, fontWeight: '700', marginTop: 20 },
   emptySub:           { color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 20 },
+  labelInput:       { backgroundColor: '#1E293B', borderRadius: 12, height: 50, paddingHorizontal: 15, color: '#F8FAFC', marginBottom: 12, borderWidth: 1, borderColor: '#334155', fontSize: 15 },
+  recordBtnDisabled:{ backgroundColor: '#1E3A5F', opacity: 0.5 },
 });
