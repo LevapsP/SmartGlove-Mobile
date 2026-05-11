@@ -6,9 +6,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, Modal, TextInput, Alert,
+  RefreshControl, Modal, TextInput, Alert, Switch
 } from 'react-native';
-import { Plus, Target, ChevronRight, Activity, LogOutIcon, Trash2 } from 'lucide-react-native';
+import { Plus, Target, ChevronRight, Activity, LogOutIcon, Trash2, Cpu } from 'lucide-react-native';
 import { modelApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import { GestureModel } from '../types';
@@ -24,11 +24,12 @@ export default function ModelsScreen() {
 
   const { selectedModelId, setSelectedModelId, logout } = useStore();
 
+  const [basedOnDefault, setBasedOnDefault] = useState(false);
+
   const fetchModels = async () => {
   setRefreshing(true);
   try {
-    const { data } = await modelApi.getModels();
-    console.log('MODELS:', JSON.stringify(data, null, 2)); 
+    const { data } = await modelApi.getAllModels();
     setModels(data);
   } catch (err) {
     console.error('[Models] fetch failed', err);
@@ -37,7 +38,18 @@ export default function ModelsScreen() {
   }
 };
 
-  useEffect(() => { fetchModels(); }, []);
+  // в ModelsScreen.tsx
+useEffect(() => {
+  // Якщо є хоч одна модель в статусі TRAINING — опитуємо кожні 5 секунд
+  const hasTraining = models.some(m => m.status === 'TRAINING');
+  if (!hasTraining) return;
+
+  const interval = setInterval(() => {
+    fetchModels();
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [models]);
 
   const handleDelete = (modelId: string, modelName: string) => {
   Alert.alert(
@@ -62,11 +74,14 @@ export default function ModelsScreen() {
   );
 };
 
+
+
   const createModel = async () => {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await modelApi.createModel({ name: newName.trim(), basedOnDefault: false });
+      await modelApi.createModel({ name: newName.trim(), basedOnDefault });
+      setBasedOnDefault(false);
       setModalVisible(false);
       setNewName('');
       setNewDesc('');
@@ -75,6 +90,18 @@ export default function ModelsScreen() {
       Alert.alert('Error', 'Failed to create model');
     } finally {
       setCreating(false);
+    }
+  };
+
+  
+
+  const handleTrain = async (modelId: string) => {
+    try {
+      await modelApi.trainModel(modelId);
+      Alert.alert('Training started', 'Model is being trained. Check status in a moment.');
+      fetchModels(); // оновить статус
+    } catch {
+      Alert.alert('Error', 'Failed to start training');
     }
   };
 
@@ -102,15 +129,24 @@ export default function ModelsScreen() {
         )}
       </View>
       <View style={styles.cardFooter}>
-        <View style={styles.statLine}>
-          <Activity color="#94A3B8" size={14} />
-          <Text style={styles.statText}>{item.status}</Text>
-        </View>
-        {/* 👈 ДОДАЙ кнопку видалення */}
-        <TouchableOpacity onPress={() => handleDelete(item.id, item.name)}>
-          <Trash2 color="#EF4444" size={18} />
-        </TouchableOpacity>
+      <View style={styles.statLine}>
+        <Activity color="#94A3B8" size={14} />
+        <Text style={styles.statText}>{item.status}</Text>
       </View>
+      {/* кнопки тільки для не-дефолтних */}
+      {!item.default && (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {item.status !== 'READY' && (
+            <TouchableOpacity onPress={() => handleTrain(item.id)}>
+              <Cpu color="#3B82F6" size={18} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => handleDelete(item.id, item.name)}>
+            <Trash2 color="#EF4444" size={18} />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
     </TouchableOpacity>
   );
 };
@@ -158,6 +194,15 @@ export default function ModelsScreen() {
               value={newName}
               onChangeText={setNewName}
             />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+              <Text style={{ color: '#F8FAFC', fontSize: 15 }}>Include default gestures</Text>
+              <Switch
+                value={basedOnDefault}
+                onValueChange={setBasedOnDefault}
+                trackColor={{ false: '#334155', true: '#3B82F6' }}
+                thumbColor="#fff"
+              />
+          </View>
             <TextInput
               style={[styles.modalInput, styles.areaInput]}
               placeholder="Description (optional)"

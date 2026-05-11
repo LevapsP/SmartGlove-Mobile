@@ -23,7 +23,7 @@ const api = axios.create({
 api.interceptors.request.use(
   config => {
   const token = useStore.getState().token;
-  console.log('TOKEN:', token ? token.substring(0, 20) + '...' : 'NULL');
+  console.log('FULL TOKEN:', token);
 
   if (token && !config.url?.startsWith('/auth')) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -70,6 +70,8 @@ export const authApi = {
     api.post<AuthResponse>('/auth/register', data),
 };
 
+
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 export const modelApi = {
   getModels: () =>
@@ -102,11 +104,11 @@ export const predictApi = {
   init: (modelId: string) =>
     api.post(`/predict/init/${modelId}`),
 
+  unload: (modelId: string) =>       // 👈 ДОДАЙ
+    api.post(`/predict/unload/${modelId}`),
+
   predict: (modelId: string, rawData: SensorFrame[]) =>
-    api.post<PredictResponse>('/predict/gesture', {
-      modelId,
-      rawData,
-    }),
+    api.post<PredictResponse>('/predict/gesture', { modelId, rawData }),
 };
 
 export default api;

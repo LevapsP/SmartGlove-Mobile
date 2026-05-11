@@ -147,18 +147,28 @@ export default function RecordingScreen() {
 
       {/* Visual indicator */}
       <View style={styles.visualizer}>
-        <View style={[styles.pulseCircle, isRecording && styles.pulseActive]}>
-          <Fingerprint color={isRecording ? '#4ADE80' : hasCapture ? '#3B82F6' : '#334155'} size={64} />
-        </View>
-        <Text style={styles.statusText}>
-          {isRecording
-            ? 'Recording...'           // 👈 спростити
-            : hasCapture
-              ? `Captured ${capturedFrames.length} frames`
-              : 'Ready to record'}
-        </Text>
-        <Text style={styles.frameCount}>{framesCollected} frames received</Text>
-      </View>
+  <View style={[styles.pulseCircle, isRecording && styles.pulseActive]}>
+    <Fingerprint color={isRecording ? '#4ADE80' : hasCapture ? '#3B82F6' : '#334155'} size={64} />
+  </View>
+  <Text style={styles.statusText}>
+    {isRecording
+      ? 'Recording...'
+      : hasCapture
+        ? `Captured ${capturedFrames.length} frames`
+        : 'Ready to record'}
+  </Text>
+  <Text style={styles.frameCount}>{framesCollected} frames received</Text>
+
+  {/* 👈 Кнопка Stop */}
+  {isRecording && (
+    <TouchableOpacity
+      style={{ backgroundColor: '#EF4444', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 10, marginTop: 16 }}
+      onPress={handleStopRecording}
+    >
+      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Stop</Text>
+    </TouchableOpacity>
+  )}
+</View>
 
       {/* Controls */}
       <View style={styles.controls}>

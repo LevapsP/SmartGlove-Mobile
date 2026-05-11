@@ -30,6 +30,7 @@ export default function AuthScreen() {
     if (isLogin) {
       const { data } = await authApi.login({ email, password });
       setAuth(data.token);
+      console.log('FULL TOKEN AFTER LOGIN:', data.token);
     } else {
       const { data } = await authApi.register({ email, password });
       setAuth(data.token);
