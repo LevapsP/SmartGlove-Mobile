@@ -1,9 +1,4 @@
-/**
- * ModelsScreen.tsx — no logic bugs found in original.
- * Changes: typed imports, minor style cleanup.
- */
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, Modal, TextInput, Alert, Switch
@@ -12,6 +7,9 @@ import { Plus, Target, ChevronRight, Activity, LogOutIcon, Trash2, Cpu } from 'l
 import { modelApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import { GestureModel } from '../types';
+import NotificationService from '../services/NotificationService';
+
+
 
 
 export default function ModelsScreen() {
@@ -38,14 +36,40 @@ export default function ModelsScreen() {
   }
 };
 
-  // в ModelsScreen.tsx
+const prevStatusesRef = useRef<Record<string, string>>({});
+
+
+
 useEffect(() => {
-  // Якщо є хоч одна модель в статусі TRAINING — опитуємо кожні 5 секунд
   const hasTraining = models.some(m => m.status === 'TRAINING');
   if (!hasTraining) return;
 
-  const interval = setInterval(() => {
-    fetchModels();
+  const interval = setInterval(async () => {
+    const { data } = await modelApi.getModels().catch(() => ({ data: [] }));
+
+    data.forEach((model: GestureModel) => {
+      const prev = prevStatusesRef.current[model.id];
+
+      // статус змінився
+      if (prev && prev !== model.status) {
+        if (model.status === 'READY') {
+          NotificationService.showSuccess(
+            '✅ Model Ready',
+            `"${model.name}" has been trained successfully!`
+          );
+        } else if (model.status === 'FAILED') {
+          NotificationService.showError(
+            '❌ Training Failed',
+            `"${model.name}" training failed. Try again.`
+          );
+        }
+      }
+
+      // оновлюємо попередній статус
+      prevStatusesRef.current[model.id] = model.status;
+    });
+
+    setModels(data);
   }, 5000);
 
   return () => clearInterval(interval);
@@ -53,12 +77,12 @@ useEffect(() => {
 
   const handleDelete = (modelId: string, modelName: string) => {
   Alert.alert(
-    'Видалити модель',
-    `Ви впевнені що хочете видалити "${modelName}"?`,
+    'Delete model',
+    `Are you sure you want to remove "${modelName}"?`,
     [
-      { text: 'Скасувати', style: 'cancel' },
+      { text: 'Discard', style: 'cancel' },
       {
-        text: 'Видалити',
+        text: 'Delete',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -95,15 +119,31 @@ useEffect(() => {
 
   
 
-  const handleTrain = async (modelId: string) => {
-    try {
-      await modelApi.trainModel(modelId);
-      Alert.alert('Training started', 'Model is being trained. Check status in a moment.');
-      fetchModels(); // оновить статус
-    } catch {
-      Alert.alert('Error', 'Failed to start training');
-    }
-  };
+  const handleTrain = async (modelId: string, isRetrain: boolean) => {
+  Alert.alert(
+    isRetrain ? 'Retrain Model?' : 'Train Model?',
+    isRetrain
+      ? 'This will retrain the model with all current gestures. Continue?'
+      : 'Start training this model?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: isRetrain ? 'Retrain' : 'Train',
+        onPress: async () => {
+          try {
+            await modelApi.trainModel(modelId);
+            Alert.alert('Started', 'Training started. You will be notified when done.');
+            fetchModels();
+          } catch {
+            Alert.alert('Error', 'Failed to start training');
+          }
+        },
+      },
+    ]
+  );
+};
+
+  
 
   const renderModel = ({ item }: { item: GestureModel }) => {
   const isSelected = selectedModelId === item.id;
@@ -136,11 +176,14 @@ useEffect(() => {
       {/* кнопки тільки для не-дефолтних */}
       {!item.default && (
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {item.status !== 'READY' && (
-            <TouchableOpacity onPress={() => handleTrain(item.id)}>
-              <Cpu color="#3B82F6" size={18} />
+          {!item.default && (
+            <TouchableOpacity onPress={() => handleTrain(item.id, item.status === 'READY')}>
+              <Cpu
+                color={item.status === 'READY' ? '#F59E0B' : '#3B82F6'} // жовта якщо вже Ready
+                size={18}
+              />
             </TouchableOpacity>
-          )}
+)}
           <TouchableOpacity onPress={() => handleDelete(item.id, item.name)}>
             <Trash2 color="#EF4444" size={18} />
           </TouchableOpacity>
