@@ -20,11 +20,34 @@ export default function AuthScreen() {
 
   const setAuth = useStore(state => state.setAuth);
 
+  const validatePassword = (password: string): string | null => {
+  if (password.length < 8)
+    return 'Password must be at least 8 characters';
+  if (!/[A-Z]/.test(password))
+    return 'Password must contain at least one uppercase letter';
+  if (!/[a-z]/.test(password))
+    return 'Password must contain at least one lowercase letter';
+  if (!/[0-9]/.test(password))
+    return 'Password must contain at least one number';
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+    return 'Password must contain at least one special character';
+  return null;
+};
+
   const handleAuth = async () => {
   if (!email.trim() || !password.trim()) {
     Alert.alert('Error', 'Please fill in all fields');
     return;
   }
+
+  if (!isLogin) {
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      Alert.alert('Weak Password', passwordError);
+      return;
+    }
+  }
+
   setLoading(true);
   try {
     if (isLogin) {
@@ -84,6 +107,23 @@ export default function AuthScreen() {
           />
         </View>
 
+        {!isLogin && (
+          <View style={styles.requirements}>
+            <Text style={styles.reqTitle}>Password must contain:</Text>
+            {[
+              { label: 'At least 8 characters',         ok: password.length >= 8 },
+              { label: 'Uppercase letter (A-Z)',         ok: /[A-Z]/.test(password) },
+              { label: 'Lowercase letter (a-z)',         ok: /[a-z]/.test(password) },
+              { label: 'Number (0-9)',                   ok: /[0-9]/.test(password) },
+              { label: 'Special character (!@#$...)',    ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+            ].map(({ label, ok }) => (
+              <Text key={label} style={[styles.reqItem, ok && styles.reqOk]}>
+                {ok ? '✓' : '○'} {label}
+              </Text>
+            ))}
+          </View>
+        )}
+
         <TouchableOpacity style={styles.mainBtn} onPress={handleAuth} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#fff" />
@@ -114,4 +154,8 @@ const styles = StyleSheet.create({
   mainBtnText:  { color: '#fff', fontSize: 18, fontWeight: '700' },
   toggleBtn:    { marginTop: 20, alignItems: 'center' },
   toggleText:   { color: '#94A3B8', fontSize: 14 },
+  requirements:  { marginBottom: 12, padding: 12, backgroundColor: '#0F172A', borderRadius: 10, borderWidth: 1, borderColor: '#334155' },
+  reqTitle:      { color: '#64748B', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  reqItem:       { color: '#475569', fontSize: 12, marginBottom: 3 },
+  reqOk:         { color: '#4ADE80' },
 });
