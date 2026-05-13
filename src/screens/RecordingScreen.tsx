@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ActivityIndicator, TextInput 
+  Alert, ActivityIndicator, TextInput,
+  KeyboardAvoidingView, ScrollView, Platform
 } from 'react-native';
 import { Save, Trash2, Info, Fingerprint } from 'lucide-react-native';
 import BluetoothService from '../services/BluetoothService';
@@ -122,7 +123,18 @@ export default function RecordingScreen() {
   const hasCapture = capturedFrames.length > 0;
 
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView
+    style={{ flex: 1, backgroundColor: '#0F172A' }}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+  >
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1, padding: 20 }}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      style={{ backgroundColor: '#0F172A' }}
+    >
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Record Gesture</Text>
         <View style={styles.modelBadge}>
@@ -132,60 +144,56 @@ export default function RecordingScreen() {
 
       {/* Visual indicator */}
       <View style={styles.visualizer}>
-  <View style={[styles.pulseCircle, isRecording && styles.pulseActive]}>
-    <Fingerprint color={isRecording ? '#4ADE80' : hasCapture ? '#3B82F6' : '#334155'} size={64} />
-  </View>
-  <Text style={styles.statusText}>
-    {isRecording
-      ? 'Recording...'
-      : hasCapture
-        ? `Captured ${capturedFrames.length} frames`
-        : 'Ready to record'}
-  </Text>
-  <Text style={styles.frameCount}>{framesCollected} frames received</Text>
-
-  {/* 👈 Кнопка Stop */}
-  {isRecording && (
-    <TouchableOpacity
-      style={{ backgroundColor: '#EF4444', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 10, marginTop: 16 }}
-      onPress={handleStopRecording}
-    >
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Stop</Text>
-    </TouchableOpacity>
-  )}
-</View>
+        <View style={[styles.pulseCircle, isRecording && styles.pulseActive]}>
+          <Fingerprint color={isRecording ? '#4ADE80' : hasCapture ? '#3B82F6' : '#334155'} size={64} />
+        </View>
+        <Text style={styles.statusText}>
+          {isRecording
+            ? 'Recording...'
+            : hasCapture
+              ? `Captured ${capturedFrames.length} frames`
+              : 'Ready to record'}
+        </Text>
+        <Text style={styles.frameCount}>{framesCollected} frames received</Text>
+        {isRecording && (
+          <TouchableOpacity
+            style={{ backgroundColor: '#EF4444', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 10, marginTop: 16 }}
+            onPress={handleStopRecording}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Stop</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Controls */}
       <View style={styles.controls}>
         <TextInput
-          style={styles.labelInput}
+          style={[styles.labelInput, !connectedDevice && styles.inputDisabled]}
           placeholder="Gesture name (e.g. hello, yes, no)"
           placeholderTextColor="#64748B"
           value={gestureLabel}
           onChangeText={setGestureLabel}
           editable={!isRecording && !!connectedDevice}
-          returnKeyType='done'
+          returnKeyType="done"
         />
-        {!connectedDevice && (
-        <View style={styles.btWarning}>
-          <Text style={styles.btWarningText}>
-            Connect glove via Bluetooth to record gestures
-          </Text>
-        </View>
-      )}
 
-  {!isRecording && !hasCapture && (
-    <TouchableOpacity
-      style={[
-        styles.recordBtn,
-        (!gestureLabel.trim() || !connectedDevice) && styles.recordBtnDisabled // 👈
-      ]}
-      onPress={handleStartRecording}
-      disabled={!gestureLabel.trim() || !connectedDevice} // 👈
-    >
-      <Text style={styles.recordBtnText}>Start Recording</Text>
-    </TouchableOpacity>
-  )}
+        {!connectedDevice && (
+          <View style={styles.btWarning}>
+            <Text style={styles.btWarningText}>
+              Connect glove via Bluetooth to record gestures
+            </Text>
+          </View>
+        )}
+
+        {!isRecording && !hasCapture && (
+          <TouchableOpacity
+            style={[styles.recordBtn, (!gestureLabel.trim() || !connectedDevice) && styles.recordBtnDisabled]}
+            onPress={handleStartRecording}
+            disabled={!gestureLabel.trim() || !connectedDevice}
+          >
+            <Text style={styles.recordBtnText}>Start Recording</Text>
+          </TouchableOpacity>
+        )}
 
         {hasCapture && !isRecording && (
           <View style={styles.actionRow}>
@@ -222,17 +230,19 @@ export default function RecordingScreen() {
           </View>
         </View>
       </View>
-    </View>
-  );
+
+    </ScrollView>
+  </KeyboardAvoidingView>
+);
 }
 
 const styles = StyleSheet.create({
-  container:          { flex: 1, backgroundColor: '#0F172A', padding: 20 },
+  container:          { flex: 1, backgroundColor: '#0F172A'},
   header:             { marginTop: 40, marginBottom: 30 },
   title:              { color: '#F8FAFC', fontSize: 28, fontWeight: '800' },
   modelBadge:         { backgroundColor: '#1E293B', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, alignSelf: 'flex-start' },
   modelBadgeText:     { color: '#94A3B8', fontSize: 12, fontFamily: 'monospace' },
-  visualizer:         { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  visualizer:         { paddingVertical: 30, justifyContent: 'center', alignItems: 'center' },
   pulseCircle:        { width: 160, height: 160, borderRadius: 80, backgroundColor: '#1E293B', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#334155' },
   pulseActive:        { borderColor: '#4ADE80', backgroundColor: 'rgba(74,222,128,0.05)' },
   statusText:         { color: '#F8FAFC', fontSize: 16, fontWeight: '600', marginTop: 20, textAlign: 'center', paddingHorizontal: 20 },
