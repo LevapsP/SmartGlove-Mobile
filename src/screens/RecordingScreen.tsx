@@ -1,16 +1,4 @@
-/**
- * RecordingScreen.tsx
- *
- * FIX 1 (memory leak): useEffect now uses specific on/off with named callbacks,
- *   NOT removeAllListeners() which wiped TranslatorScreen's listeners too.
- *
- * FIX 2 (closure bug): `isRecording` state inside the 'frame' callback always
- *   captured the initial `false` value. Fixed with useRef that stays current.
- *
- * FIX 3: Dependency array was [isRecording, selectedModelId] — this caused
- *   the effect to re-run and re-register listeners on every state change,
- *   creating duplicate listeners. Now it runs once ([]).
- */
+
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -24,7 +12,7 @@ import { useStore } from '../store/useStore';
 import { SensorFrame } from '../types';
 
 export default function RecordingScreen() {
-  const { selectedModelId } = useStore();
+  const { selectedModelId, connectedDevice } = useStore();
 
   const [gestureLabel, setGestureLabel] = useState('');
 
@@ -33,10 +21,7 @@ export default function RecordingScreen() {
   const [capturedFrames, setCapturedFrames]     = useState<SensorFrame[]>([]);
   const [saving, setSaving]                     = useState(false);
   const [summary, setSummary]                   = useState<{ totalGestures: number; labelsCount: number } | null>(null);
-
-  // FIX 2: useRef holds the live value of isRecording for use inside callbacks.
-  // Without this, the 'frame' callback always sees the initial false.
-  // Analogy to ESP32: like a volatile flag that the ISR can read correctly.
+  
   const isRecordingRef = useRef(false);
 
   // Keep ref in sync with state
@@ -173,19 +158,30 @@ export default function RecordingScreen() {
       {/* Controls */}
       <View style={styles.controls}>
         <TextInput
-    style={styles.labelInput}
-    placeholder="Gesture name (e.g. hello, yes, no)"
-    placeholderTextColor="#64748B"
-    value={gestureLabel}
-    onChangeText={setGestureLabel}
-    editable={!isRecording}
-  />
+          style={styles.labelInput}
+          placeholder="Gesture name (e.g. hello, yes, no)"
+          placeholderTextColor="#64748B"
+          value={gestureLabel}
+          onChangeText={setGestureLabel}
+          editable={!isRecording && !!connectedDevice}
+          returnKeyType='done'
+        />
+        {!connectedDevice && (
+        <View style={styles.btWarning}>
+          <Text style={styles.btWarningText}>
+            Connect glove via Bluetooth to record gestures
+          </Text>
+        </View>
+      )}
 
   {!isRecording && !hasCapture && (
     <TouchableOpacity
-      style={[styles.recordBtn, !gestureLabel.trim() && styles.recordBtnDisabled]}
+      style={[
+        styles.recordBtn,
+        (!gestureLabel.trim() || !connectedDevice) && styles.recordBtnDisabled // 👈
+      ]}
       onPress={handleStartRecording}
-      disabled={!gestureLabel.trim()} // 👈 не можна записати без назви
+      disabled={!gestureLabel.trim() || !connectedDevice} // 👈
     >
       <Text style={styles.recordBtnText}>Start Recording</Text>
     </TouchableOpacity>
@@ -264,4 +260,7 @@ const styles = StyleSheet.create({
   emptySub:           { color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 20 },
   labelInput:       { backgroundColor: '#1E293B', borderRadius: 12, height: 50, paddingHorizontal: 15, color: '#F8FAFC', marginBottom: 12, borderWidth: 1, borderColor: '#334155', fontSize: 15 },
   recordBtnDisabled:{ backgroundColor: '#1E3A5F', opacity: 0.5 },
+  inputDisabled: { opacity: 0.4 },
+  btWarning:     { backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  btWarningText: { color: '#F87171', fontSize: 13, textAlign: 'center' },
 });
